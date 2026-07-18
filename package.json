@@ -1,0 +1,27 @@
+{
+  "name": "obsidian-icloud",
+  "version": "0.0.1",
+  "description": "Sync a vault folder with your iCloud Notes via the icloud-md CLI.",
+  "main": "main.js",
+  "scripts": {
+    "dev": "node esbuild.config.mjs",
+    "build": "node esbuild.config.mjs production",
+    "typecheck": "node --max-old-space-size=6144 node_modules/.bin/tsc -noEmit -skipLibCheck",
+    "version": "node version-bump.mjs && git add manifest.json versions.json",
+    "lint": "eslint src/"
+  },
+  "keywords": [],
+  "author": "Adam Coddington",
+  "license": "MIT",
+  "devDependencies": {
+    "@eslint/js": "^9.39.4",
+    "@types/node": "^18",
+    "esbuild": "0.28.0",
+    "eslint": "^9.39.4",
+    "eslint-plugin-obsidianmd": "^0.3.0",
+    "obsidian": "latest",
+    "tslib": "2.4.0",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.59.3"
+  }
+}

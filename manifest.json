@@ -1,0 +1,10 @@
+{
+	"id": "obsidian-icloud",
+	"name": "iCloud Notes Sync",
+	"version": "0.0.1",
+	"minAppVersion": "1.8.7",
+	"description": "Sync a vault folder with your iCloud Notes via the icloud-md CLI.",
+	"author": "Adam Coddington",
+	"authorUrl": "https://adamcoddington.net/",
+	"isDesktopOnly": true
+}
