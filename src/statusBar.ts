@@ -23,24 +23,24 @@ export class IcloudStatusBar {
 		switch (state.kind) {
 			case "disconnected":
 				setIcon(iconEl, "cloud-off");
-				el.ariaLabel = "iCloud notes sync: not connected";
+				el.ariaLabel = "Apple notes sync: not connected";
 				break;
 			case "syncing":
 				setIcon(iconEl, "refresh-cw");
-				el.ariaLabel = `iCloud notes sync: ${state.label}...`;
+				el.ariaLabel = `Apple notes sync: ${state.label}...`;
 				break;
 			case "error":
 				setIcon(iconEl, "alert-triangle");
-				el.ariaLabel = `iCloud notes sync: ${state.message}`;
+				el.ariaLabel = `Apple notes sync: ${state.message}`;
 				break;
 			case "idle":
 				if (state.pendingCount) {
 					setIcon(iconEl, "cloud");
 					textEl.setText(String(state.pendingCount));
-					el.ariaLabel = `iCloud notes sync: ${state.pendingCount} change(s) pending`;
+					el.ariaLabel = `Apple notes sync: ${state.pendingCount} change(s) pending`;
 				} else {
 					setIcon(iconEl, "cloud-check");
-					el.ariaLabel = "iCloud notes sync: up to date";
+					el.ariaLabel = "Apple notes sync: up to date";
 				}
 				break;
 		}

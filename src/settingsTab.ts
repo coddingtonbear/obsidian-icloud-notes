@@ -44,7 +44,7 @@ export class IcloudSettingTab extends PluginSettingTab {
 			{
 				name: "Vault folder",
 				desc: "Vault-relative folder to clone into. Choose an empty or new folder - `clone` creates it if missing but refuses one it's already bound to.",
-				control: { type: "text", key: "folder", placeholder: "iCloud notes" },
+				control: { type: "text", key: "folder", placeholder: "Apple Notes" },
 			},
 			{
 				name: "Connect",

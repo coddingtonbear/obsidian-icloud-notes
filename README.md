@@ -1,4 +1,4 @@
-# iCloud Notes Sync
+# Apple Notes Sync
 
 Sync a folder in your Obsidian vault with your Apple Notes, in both directions,
 from any operating system — Linux, Windows, or macOS.
@@ -58,7 +58,7 @@ lets you drive that from inside Obsidian — connect a folder, pull, push, and
 ## Usage
 
 1. Install and enable the plugin.
-2. Open **Settings → iCloud Notes Sync**.
+2. Open **Settings → Apple Notes Sync**.
 3. Enter a **vault folder** to sync into — an empty or new folder works best.
 4. Click **Connect**. This runs `icloud-md clone`, which opens an Apple sign-in
    window in your browser; sign in as you normally would (password, 2FA,

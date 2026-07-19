@@ -36,7 +36,7 @@ export default class IcloudPlugin extends Plugin {
 		this.statusBar = new IcloudStatusBar(this);
 		this.addSettingTab(new IcloudSettingTab(this.app, this));
 
-		this.addRibbonIcon("cloud", "iCloud notes sync", (evt) => this.buildActionMenu().showAtMouseEvent(evt));
+		this.addRibbonIcon("cloud", "Apple notes sync", (evt) => this.buildActionMenu().showAtMouseEvent(evt));
 
 		this.addConnectedCommand("pull-now", "Pull now", () => this.pull());
 		this.addConnectedCommand("push-now", "Push now", () => this.push());
@@ -81,7 +81,7 @@ export default class IcloudPlugin extends Plugin {
 	getVaultBasePath(): string {
 		const adapter = this.app.vault.adapter;
 		if (!(adapter instanceof FileSystemAdapter)) {
-			throw new Error("obsidian-icloud-notes requires the desktop file system adapter");
+			throw new Error("Apple Notes Sync requires the desktop file system adapter");
 		}
 		return adapter.getBasePath();
 	}
@@ -211,7 +211,7 @@ export default class IcloudPlugin extends Plugin {
 
 	private requireConnected(): boolean {
 		if (!this.settings.connected) {
-			new Notice("iCloud notes sync: connect a folder first (see plugin settings).");
+			new Notice("Apple notes sync: connect a folder first (see plugin settings).");
 			return false;
 		}
 		return true;

@@ -1,7 +1,7 @@
 {
-  "name": "obsidian-icloud-notes",
+  "name": "obsidian-apple-notes",
   "version": "1.1.1",
-  "description": "Sync a vault folder with your iCloud Notes via the icloud-md CLI.",
+  "description": "Sync a vault folder with Apple Notes (iCloud) via the icloud-md CLI.",
   "main": "main.js",
   "scripts": {
     "dev": "node esbuild.config.mjs",
