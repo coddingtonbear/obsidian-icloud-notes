@@ -1,5 +1,5 @@
 import { FileSystemAdapter, Menu, Notice, Plugin, normalizePath } from "obsidian";
-import * as path from "node:path";
+import * as nodePath from "node:path";
 import { LocalStorageSettings } from "./localStorageSettings";
 import { PeriodicSync } from "./periodicSync";
 import { DEFAULT_SETTINGS, type IcloudSettings } from "./settings";
@@ -7,6 +7,10 @@ import { IcloudSettingTab } from "./settingsTab";
 import { IcloudStatusBar } from "./statusBar";
 import { SyncQueue } from "./syncQueue";
 import { cloneIcloudMd, pullIcloudMd, pushIcloudMd, reauthenticateIcloudMd, statusIcloudMd } from "./icloudMdClient";
+
+// Obsidian's plugin review type-checks without @types/node, so node:path resolves
+// to `any`; pin join() to an explicit signature to keep the call typed.
+const path = nodePath as unknown as { join: (...segments: string[]) => string };
 
 export type SyncState =
 	| { kind: "disconnected" }

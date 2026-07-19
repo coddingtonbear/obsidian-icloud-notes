@@ -1,6 +1,33 @@
-import { spawn } from "node:child_process";
+import { spawn as nodeSpawn } from "node:child_process";
 import { Platform } from "obsidian";
 import type IcloudPlugin from "./main";
+
+/**
+ * Obsidian's plugin review type-checks without @types/node, which collapses
+ * every node:child_process / process value to `any` and trips the no-unsafe-*
+ * rules. Pin the slice of the node API we use to explicit local types so the
+ * boundary stays typed whether or not the ambient node types are present.
+ */
+type ProcessEnv = Record<string, string | undefined>;
+
+interface SpawnedStream {
+	on(event: "data", listener: (data: { toString(): string }) => void): void;
+}
+
+interface SpawnedChild {
+	stdout: SpawnedStream;
+	stderr: SpawnedStream;
+	on(event: "error", listener: (err: Error) => void): void;
+	on(event: "close", listener: (code: number | null) => void): void;
+}
+
+const spawn = nodeSpawn as unknown as (
+	command: string,
+	args: string[],
+	options: { cwd?: string; env: ProcessEnv },
+) => SpawnedChild;
+
+const processEnv = (window as unknown as { process: { env: ProcessEnv } }).process.env;
 
 export interface CliRunResult {
 	stdout: string;
@@ -24,8 +51,8 @@ function resolveBinary(plugin: IcloudPlugin): string {
  * dir (nvm/Homebrew/asdf) is often invisible to spawn(). User-editable extra
  * PATH entries are prepended, mirroring obsidian-git's simpleGit.ts pattern.
  */
-function buildEnv(plugin: IcloudPlugin): NodeJS.ProcessEnv {
-	const env = { ...process.env };
+function buildEnv(plugin: IcloudPlugin): ProcessEnv {
+	const env: ProcessEnv = { ...processEnv };
 	const additions = plugin.localStorage.getPathAdditions();
 	if (additions.length > 0) {
 		env["PATH"] = additions.join(":") + ":" + (env["PATH"] ?? "");
@@ -53,12 +80,12 @@ export function runIcloudMd(plugin: IcloudPlugin, args: string[], options: CliRu
 		let stdout = "";
 		let stderr = "";
 
-		child.stdout.on("data", (data: Buffer) => {
+		child.stdout.on("data", (data) => {
 			const chunk = data.toString();
 			stdout += chunk;
 			options.onOutput?.(chunk, "stdout");
 		});
-		child.stderr.on("data", (data: Buffer) => {
+		child.stderr.on("data", (data) => {
 			const chunk = data.toString();
 			stderr += chunk;
 			options.onOutput?.(chunk, "stderr");
