@@ -1,8 +1,8 @@
 {
 	"id": "icloud-notes",
 	"name": "iCloud Notes Sync",
-	"version": "1.0.0",
-	"minAppVersion": "1.8.7",
+	"version": "1.1.0",
+	"minAppVersion": "1.13.0",
 	"description": "Sync a vault folder with your iCloud Notes via the icloud-md CLI.",
 	"author": "Adam Coddington",
 	"authorUrl": "https://adamcoddington.net/",

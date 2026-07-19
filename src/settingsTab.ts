@@ -1,12 +1,6 @@
-import { Notice, PluginSettingTab, Setting, type App, type ButtonComponent } from "obsidian";
+import { Notice, PluginSettingTab, type App, type Setting, type SettingDefinitionItem } from "obsidian";
 import type IcloudPlugin from "./main";
 
-/* eslint-disable @typescript-eslint/no-deprecated --
- * Obsidian 1.13.0 added a declarative getSettingDefinitions() API that deprecates display()
- * and setWarning(), but adopting it would raise minAppVersion from 1.8.7 to 1.13.0 and no
- * reference plugin (obsidian-git, obsidian-readwise) has migrated yet - not worth narrowing
- * compatibility for this two-state, dynamically-rerendering settings tab today. Revisit once
- * the declarative API is more established. */
 export class IcloudSettingTab extends PluginSettingTab {
 	constructor(
 		app: App,
@@ -15,150 +9,163 @@ export class IcloudSettingTab extends PluginSettingTab {
 		super(app, plugin);
 	}
 
-	display(): void {
-		const { containerEl } = this;
-		containerEl.empty();
+	getSettingDefinitions(): SettingDefinitionItem[] {
+		const items: SettingDefinitionItem[] = this.plugin.settings.connected
+			? this.connectedDefinitions()
+			: this.notConnectedDefinitions();
+		items.push(this.advancedGroup());
+		return items;
+	}
 
-		if (this.plugin.settings.connected) {
-			this.renderConnected(containerEl);
-		} else {
-			this.renderNotConnected(containerEl);
+	/** Persist control changes and run the side effects the old onChange handlers did. */
+	async setControlValue(key: string, value: unknown): Promise<void> {
+		switch (key) {
+			case "folder":
+				this.plugin.settings.folder = value as string;
+				await this.plugin.saveSettings();
+				return;
+			case "autoSyncEnabled":
+				this.plugin.settings.autoSyncEnabled = value as boolean;
+				await this.plugin.saveSettings();
+				this.plugin.periodicSync.reload();
+				// Re-render so the interval field appears/disappears.
+				this.update();
+				return;
+			case "autoSyncIntervalMinutes":
+				this.plugin.settings.autoSyncIntervalMinutes = value as number;
+				await this.plugin.saveSettings();
+				this.plugin.periodicSync.reload();
+				return;
 		}
-
-		this.renderAdvanced(containerEl);
 	}
 
-	private renderNotConnected(containerEl: HTMLElement): void {
-		new Setting(containerEl)
-			.setName("Vault folder")
-			.setDesc(
-				"Vault-relative folder to clone into. Choose an empty or new folder - `clone` creates it if missing but refuses one it's already bound to.",
-			)
-			.addText((text) =>
-				text
-					.setPlaceholder("iCloud notes")
-					.setValue(this.plugin.settings.folder)
-					.onChange(async (value) => {
-						this.plugin.settings.folder = value;
-						await this.plugin.saveSettings();
-					}),
-			);
-
-		let connectButton: ButtonComponent;
-		new Setting(containerEl)
-			.setName("Connect")
-			.setDesc("Runs `icloud-md clone` into the folder above - this opens the iCloud sign-in browser window.")
-			.addButton((button) => {
-				connectButton = button;
-				button
-					.setButtonText("Connect")
-					.setCta()
-					.onClick(async () => {
-						if (!this.plugin.settings.folder.trim()) {
-							new Notice("Choose a vault folder first.");
-							return;
-						}
-						connectButton.setDisabled(true).setButtonText("Connecting...");
-						const success = await this.plugin.connect();
-						if (success) {
-							this.display();
-						} else {
-							connectButton.setDisabled(false).setButtonText("Connect");
-						}
-					});
-			});
+	private notConnectedDefinitions(): SettingDefinitionItem[] {
+		return [
+			{
+				name: "Vault folder",
+				desc: "Vault-relative folder to clone into. Choose an empty or new folder - `clone` creates it if missing but refuses one it's already bound to.",
+				control: { type: "text", key: "folder", placeholder: "iCloud notes" },
+			},
+			{
+				name: "Connect",
+				desc: "Runs `icloud-md clone` into the folder above - this opens the iCloud sign-in browser window.",
+				render: (setting: Setting) => {
+					setting.addButton((button) =>
+						button
+							.setButtonText("Connect")
+							.setCta()
+							.onClick(async () => {
+								if (!this.plugin.settings.folder.trim()) {
+									new Notice("Choose a vault folder first.");
+									return;
+								}
+								button.setDisabled(true).setButtonText("Connecting...");
+								const success = await this.plugin.connect();
+								if (success) {
+									this.update();
+								} else {
+									button.setDisabled(false).setButtonText("Connect");
+								}
+							}),
+					);
+				},
+			},
+		];
 	}
 
-	private renderConnected(containerEl: HTMLElement): void {
-		new Setting(containerEl)
-			.setName("Vault folder")
-			.setDesc("Connected. Disconnect to change it.")
-			.addText((text) => text.setValue(this.plugin.settings.folder).setDisabled(true));
-
-		new Setting(containerEl)
-			.setName("Sync now")
-			.addButton((button) => button.setButtonText("Pull").onClick(() => void this.plugin.pull()))
-			.addButton((button) => button.setButtonText("Push").onClick(() => void this.plugin.push()));
-
-		new Setting(containerEl)
-			.setName("Reauthenticate")
-			.setDesc("Force a fresh iCloud sign-in for this folder.")
-			.addButton((button) => button.setButtonText("Reauthenticate").onClick(() => void this.plugin.reauthenticate()));
-
-		new Setting(containerEl)
-			.setName("Disconnect")
-			.setDesc("Forgets this binding and stops auto-sync. Leaves the cloned files and icloud-side auth untouched.")
-			.addButton((button) =>
-				button
-					.setWarning()
-					.setButtonText("Disconnect")
-					.onClick(() => {
-						this.plugin.disconnect();
-						this.display();
-					}),
-			);
-
-		new Setting(containerEl)
-			.setName("Sync automatically")
-			.setDesc("Off by default. When enabled, pulls then pushes on the interval below.")
-			.addToggle((toggle) =>
-				toggle.setValue(this.plugin.settings.autoSyncEnabled).onChange(async (value) => {
-					this.plugin.settings.autoSyncEnabled = value;
-					await this.plugin.saveSettings();
-					this.plugin.periodicSync.reload();
-					this.display();
-				}),
-			);
-
-		if (this.plugin.settings.autoSyncEnabled) {
-			new Setting(containerEl)
-				.setName("Auto-sync interval")
-				.setDesc("Minutes between automatic pull-then-push runs.")
-				.addText((text) => {
-					text.inputEl.type = "number";
-					text.inputEl.min = "1";
-					text
-						.setValue(String(this.plugin.settings.autoSyncIntervalMinutes))
-						.onChange(async (value) => {
-							const minutes = Number(value);
-							if (!Number.isFinite(minutes) || minutes <= 0) {
-								return;
-							}
-							this.plugin.settings.autoSyncIntervalMinutes = minutes;
-							await this.plugin.saveSettings();
-							this.plugin.periodicSync.reload();
+	private connectedDefinitions(): SettingDefinitionItem[] {
+		return [
+			{
+				name: "Vault folder",
+				desc: "Connected. Disconnect to change it.",
+				control: { type: "text", key: "folder", disabled: true },
+			},
+			{
+				name: "Sync now",
+				render: (setting: Setting) => {
+					setting
+						.addButton((button) => button.setButtonText("Pull").onClick(() => void this.plugin.pull()))
+						.addButton((button) => button.setButtonText("Push").onClick(() => void this.plugin.push()));
+				},
+			},
+			{
+				name: "Reauthenticate",
+				desc: "Force a fresh iCloud sign-in for this folder.",
+				render: (setting: Setting) => {
+					setting.addButton((button) =>
+						button.setButtonText("Reauthenticate").onClick(() => void this.plugin.reauthenticate()),
+					);
+				},
+			},
+			{
+				name: "Disconnect",
+				desc: "Forgets this binding and stops auto-sync. Leaves the cloned files and icloud-side auth untouched.",
+				render: (setting: Setting) => {
+					setting.addButton((button) => {
+						// setWarning() is deprecated and its replacement setDestructive() is 1.13.0+;
+						// apply the styling class directly to keep this render helper self-contained.
+						button.buttonEl.addClass("mod-warning");
+						button.setButtonText("Disconnect").onClick(() => {
+							this.plugin.disconnect();
+							this.update();
 						});
-				});
-		}
+					});
+				},
+			},
+			{
+				name: "Sync automatically",
+				desc: "Off by default. When enabled, pulls then pushes on the interval below.",
+				control: { type: "toggle", key: "autoSyncEnabled" },
+			},
+			{
+				name: "Auto-sync interval",
+				desc: "Minutes between automatic pull-then-push runs.",
+				visible: () => this.plugin.settings.autoSyncEnabled,
+				control: {
+					type: "number",
+					key: "autoSyncIntervalMinutes",
+					min: 1,
+					validate: (value: number) =>
+						Number.isFinite(value) && value >= 1 ? undefined : "Enter a whole number of minutes (1 or more).",
+				},
+			},
+		];
 	}
 
-	private renderAdvanced(containerEl: HTMLElement): void {
-		new Setting(containerEl).setName("Advanced").setHeading();
-
-		new Setting(containerEl)
-			.setName("icloud-md binary location")
-			.setDesc(
-				"Leave blank to use `icloud-md` on PATH. Set this if Obsidian can't find a globally-installed binary.",
-			)
-			.addText((text) =>
-				text
-					.setPlaceholder("icloud-md")
-					.setValue(this.plugin.localStorage.getBinaryPath() ?? "")
-					.onChange((value) => this.plugin.localStorage.setBinaryPath(value)),
-			);
-
-		new Setting(containerEl)
-			.setName("Extra PATH entries")
-			.setDesc(
-				"Colon-separated directories to prepend to PATH when spawning icloud-md, such as wherever your Node version manager installs global binaries. GUI-launched Obsidian doesn't inherit your shell's PATH.",
-			)
-			.addText((text) =>
-				text
-					.setPlaceholder("/usr/local/bin:/opt/homebrew/bin")
-					.setValue(this.plugin.localStorage.getPathAdditions().join(":"))
-					.onChange((value) =>
-						this.plugin.localStorage.setPathAdditions(value.split(":").filter((entry) => entry.length > 0)),
-					),
-			);
+	private advancedGroup(): SettingDefinitionItem {
+		return {
+			type: "group",
+			heading: "Advanced",
+			items: [
+				{
+					name: "icloud-md binary location",
+					desc: "Leave blank to use `icloud-md` on PATH. Set this if Obsidian can't find a globally-installed binary.",
+					render: (setting: Setting) => {
+						setting.addText((text) =>
+							text
+								.setPlaceholder("icloud-md")
+								.setValue(this.plugin.localStorage.getBinaryPath() ?? "")
+								.onChange((value) => this.plugin.localStorage.setBinaryPath(value)),
+						);
+					},
+				},
+				{
+					name: "Extra PATH entries",
+					desc: "Colon-separated directories to prepend to PATH when spawning icloud-md, such as wherever your Node version manager installs global binaries. GUI-launched Obsidian doesn't inherit your shell's PATH.",
+					render: (setting: Setting) => {
+						setting.addText((text) =>
+							text
+								.setPlaceholder("/usr/local/bin:/opt/homebrew/bin")
+								.setValue(this.plugin.localStorage.getPathAdditions().join(":"))
+								.onChange((value) =>
+									this.plugin.localStorage.setPathAdditions(
+										value.split(":").filter((entry) => entry.length > 0),
+									),
+								),
+						);
+					},
+				},
+			],
+		};
 	}
 }
