@@ -128,7 +128,7 @@ npm run build
   queue), run with `tsx --test`.
 
 To try it in a real vault, symlink or copy `main.js`, `manifest.json`, and
-`styles.css` into `<vault>/.obsidian/plugins/obsidian-icloud-notes/` and reload
+`styles.css` into `<vault>/.obsidian/plugins/icloud-notes/` and reload
 Obsidian.
 
 ## License

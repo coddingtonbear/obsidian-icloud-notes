@@ -34,32 +34,35 @@ export default class IcloudPlugin extends Plugin {
 
 		this.addRibbonIcon("cloud", "iCloud notes sync", (evt) => this.buildActionMenu().showAtMouseEvent(evt));
 
-		this.addCommand({
-			id: "pull-now",
-			name: "Pull now",
-			callback: () => void this.pull(),
-		});
-		this.addCommand({
-			id: "push-now",
-			name: "Push now",
-			callback: () => void this.push(),
-		});
-		this.addCommand({
-			id: "reauthenticate",
-			name: "Reauthenticate",
-			callback: () => void this.reauthenticate(),
-		});
-		this.addCommand({
-			id: "show-status",
-			name: "Show status",
-			callback: () => void this.showStatus(),
-		});
+		this.addConnectedCommand("pull-now", "Pull now", () => this.pull());
+		this.addConnectedCommand("push-now", "Push now", () => this.push());
+		this.addConnectedCommand("reauthenticate", "Reauthenticate", () => this.reauthenticate());
+		this.addConnectedCommand("show-status", "Show status", () => this.showStatus());
 
 		this.periodicSync.reload();
 	}
 
 	onunload(): void {
 		this.periodicSync?.stop();
+	}
+
+	/** Registers a command that only appears/runs while a folder is connected. Using
+	 * checkCallback hides it from the command palette when disconnected, rather than
+	 * surfacing a "connect first" notice after the fact. */
+	private addConnectedCommand(id: string, name: string, action: () => Promise<void>): void {
+		this.addCommand({
+			id,
+			name,
+			checkCallback: (checking) => {
+				if (!this.settings.connected) {
+					return false;
+				}
+				if (!checking) {
+					void action();
+				}
+				return true;
+			},
+		});
 	}
 
 	async loadSettings(): Promise<void> {
