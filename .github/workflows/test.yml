@@ -1,0 +1,20 @@
+name: CI
+on: push
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+    - name: Install modules
+      run: npm i
+    - name: Lint
+      run: npm run lint
+    - name: Run tests
+      run: npm test
+    - name: Build
+      run: npm run build
+    - name: Type check
+      run: npm run typecheck
