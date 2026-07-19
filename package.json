@@ -8,7 +8,8 @@
     "build": "node esbuild.config.mjs production",
     "typecheck": "node --max-old-space-size=6144 node_modules/.bin/tsc -noEmit -skipLibCheck",
     "version": "node version-bump.mjs && git add manifest.json versions.json",
-    "lint": "eslint src/"
+    "lint": "eslint src/",
+    "test": "tsx --test $(find src -name '*.test.ts')"
   },
   "keywords": [],
   "author": "Adam Coddington",
@@ -21,6 +22,7 @@
     "eslint-plugin-obsidianmd": "^0.3.0",
     "obsidian": "latest",
     "tslib": "2.4.0",
+    "tsx": "^4.23.1",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.59.3"
   }
