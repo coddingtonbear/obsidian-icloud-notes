@@ -36,7 +36,7 @@ export default class IcloudPlugin extends Plugin {
 		this.statusBar = new IcloudStatusBar(this);
 		this.addSettingTab(new IcloudSettingTab(this.app, this));
 
-		this.addRibbonIcon("cloud", "Apple notes sync", (evt) => this.buildActionMenu().showAtMouseEvent(evt));
+		this.addRibbonIcon("cloud", "Apple Notes sync", (evt) => this.buildActionMenu().showAtMouseEvent(evt));
 
 		this.addConnectedCommand("pull-now", "Pull now", () => this.pull());
 		this.addConnectedCommand("push-now", "Push now", () => this.push());
@@ -109,14 +109,14 @@ export default class IcloudPlugin extends Plugin {
 		this.setSyncState({ kind: "syncing", label: "Connecting" });
 		const result = await this.syncQueue.run(() => cloneIcloudMd(this, targetDir));
 		if (result.ok === false) {
-			new Notice(`iCloud connect failed: ${result.error.message}`);
+			new Notice(`Apple Notes connect failed: ${result.error.message}`);
 			this.setSyncState({ kind: "error", message: result.error.message });
 			return false;
 		}
 		this.settings.connected = true;
 		await this.saveSettings();
 		this.periodicSync.reload();
-		new Notice(`iCloud: cloned ${result.data.written} note(s) into ${this.settings.folder}.`);
+		new Notice(`Apple Notes: cloned ${result.data.written} note(s) into ${this.settings.folder}.`);
 		this.setSyncState({ kind: "idle" });
 		return true;
 	}
@@ -130,35 +130,41 @@ export default class IcloudPlugin extends Plugin {
 		this.setSyncState({ kind: "disconnected" });
 	}
 
-	async pull(): Promise<void> {
+	/** `quiet` (used by auto-sync) suppresses the success notice when nothing changed, so
+	 * the interval only surfaces a popup when it actually moved a note or hit an error. */
+	async pull(options: { quiet?: boolean } = {}): Promise<void> {
 		if (!this.requireConnected()) {
 			return;
 		}
 		this.setSyncState({ kind: "syncing", label: "Pulling" });
 		const result = await this.syncQueue.run(() => pullIcloudMd(this, this.getTargetDir()));
 		if (result.ok === false) {
-			new Notice(`iCloud pull failed: ${result.error.message}`);
+			new Notice(`Apple Notes pull failed: ${result.error.message}`);
 			this.setSyncState({ kind: "error", message: result.error.message });
 			return;
 		}
-		new Notice(
-			`iCloud pull: ${result.data.added} added, ${result.data.updated} updated, ${result.data.removed} removed.`,
-		);
+		const { added, updated, removed } = result.data;
+		if (!options.quiet || added + updated + removed > 0) {
+			new Notice(`Apple Notes pull: ${added} added, ${updated} updated, ${removed} removed.`);
+		}
 		await this.refreshStatus();
 	}
 
-	async push(): Promise<void> {
+	async push(options: { quiet?: boolean } = {}): Promise<void> {
 		if (!this.requireConnected()) {
 			return;
 		}
 		this.setSyncState({ kind: "syncing", label: "Pushing" });
 		const result = await this.syncQueue.run(() => pushIcloudMd(this, this.getTargetDir()));
 		if (result.ok === false) {
-			new Notice(`iCloud push failed: ${result.error.message}`);
+			new Notice(`Apple Notes push failed: ${result.error.message}`);
 			this.setSyncState({ kind: "error", message: result.error.message });
 			return;
 		}
-		new Notice(`iCloud push: ${result.data.pushed ?? 0} note(s) pushed.`);
+		const pushed = result.data.pushed ?? 0;
+		if (!options.quiet || pushed > 0) {
+			new Notice(`Apple Notes push: ${pushed} note(s) pushed.`);
+		}
 		await this.refreshStatus();
 	}
 
@@ -166,13 +172,13 @@ export default class IcloudPlugin extends Plugin {
 		if (!this.requireConnected()) {
 			return;
 		}
-		new Notice("iCloud: opening a browser window for sign-in...");
+		new Notice("Apple Notes: opening a browser window for sign-in...");
 		const result = await this.syncQueue.run(() => reauthenticateIcloudMd(this, this.getTargetDir()));
 		if (result.ok === false) {
-			new Notice(`iCloud reauthenticate failed: ${result.error.message}`);
+			new Notice(`Apple Notes reauthenticate failed: ${result.error.message}`);
 			return;
 		}
-		new Notice(`iCloud: reauthenticated as ${result.data.appleId}.`);
+		new Notice(`Apple Notes: reauthenticated as ${result.data.appleId}.`);
 	}
 
 	async showStatus(): Promise<void> {
@@ -183,10 +189,12 @@ export default class IcloudPlugin extends Plugin {
 		const state = this.syncState;
 		if (state.kind === "idle") {
 			new Notice(
-				state.pendingCount ? `iCloud: ${state.pendingCount} change(s) pending.` : "iCloud: up to date.",
+				state.pendingCount
+					? `Apple Notes: ${state.pendingCount} change(s) pending.`
+					: "Apple Notes: up to date.",
 			);
 		} else if (state.kind === "error") {
-			new Notice(`iCloud: ${state.message}`);
+			new Notice(`Apple Notes: ${state.message}`);
 		}
 	}
 
@@ -196,8 +204,8 @@ export default class IcloudPlugin extends Plugin {
 		if (!this.settings.connected) {
 			return;
 		}
-		await this.pull();
-		await this.push();
+		await this.pull({ quiet: true });
+		await this.push({ quiet: true });
 	}
 
 	private async refreshStatus(): Promise<void> {
@@ -211,7 +219,7 @@ export default class IcloudPlugin extends Plugin {
 
 	private requireConnected(): boolean {
 		if (!this.settings.connected) {
-			new Notice("Apple notes sync: connect a folder first (see plugin settings).");
+			new Notice("Apple Notes: connect a folder first (see plugin settings).");
 			return false;
 		}
 		return true;

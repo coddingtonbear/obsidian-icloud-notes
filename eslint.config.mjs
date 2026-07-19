@@ -24,7 +24,7 @@ export default defineConfig([
         "error",
         {
           acronyms: ["PATH", "GUI", "CLI"],
-          brands: ["Obsidian", "icloud-md", "Node"],
+          brands: ["Obsidian", "icloud-md", "Node", "Apple Notes"],
           allowAutoFix: true,
         },
       ],
