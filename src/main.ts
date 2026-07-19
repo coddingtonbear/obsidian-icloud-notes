@@ -74,7 +74,7 @@ export default class IcloudPlugin extends Plugin {
 	getVaultBasePath(): string {
 		const adapter = this.app.vault.adapter;
 		if (!(adapter instanceof FileSystemAdapter)) {
-			throw new Error("obsidian-icloud requires the desktop file system adapter");
+			throw new Error("obsidian-icloud-notes requires the desktop file system adapter");
 		}
 		return adapter.getBasePath();
 	}
