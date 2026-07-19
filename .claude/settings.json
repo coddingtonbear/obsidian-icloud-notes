@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//home/acoddington/Documents/Projects/icloud-md/src/**)",
+      "Bash(cd /home/acoddington/Documents/Projects/icloud-md && cat src/cli/output.ts)",
+      "Read(//home/acoddington/Documents/Projects/icloud-md/**)",
+      "Bash(git rm *)",
+      "Bash(npm install *)",
+      "Bash(npm run *)",
+      "Bash(git mv *)"
+    ]
+  }
+}
